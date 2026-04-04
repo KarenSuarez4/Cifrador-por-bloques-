@@ -1,4 +1,10 @@
-"""API principal de cifrado y descifrado."""
+"""Núcleo de orquestación del cifrado por bloques.
+
+Responsabilidad arquitectónica:
+- validar entrada de usuario,
+- coordinar padding, schedule de claves y capas de ronda,
+- exponer API pública de cifrado/descifrado para `main.py`.
+"""
 
 from constants import ALFABETO, LARGO_BLOQUE, R, RONDAS_VERBOSE
 from key_schedule import expandir_subclave, generar_clave
@@ -8,7 +14,21 @@ from transposition import transposicion, transposicion_inversa
 
 
 def cifrar(M: str, verbose: bool = True) -> tuple:
-    """Cifra M y retorna (ciphertext, clave_maestra_generada, largo_original)."""
+    """Cifra un mensaje en un bloque de salida de longitud fija.
+
+    Args:
+        M: Mensaje a cifrar.
+        verbose: Si es `True`, imprime estados en rondas seleccionadas.
+
+    Returns:
+        Tupla `(C, K, M_len)` donde:
+        - `C` es el ciphertext final,
+        - `K` es la clave maestra generada,
+        - `M_len` es la longitud original del mensaje.
+
+    Raises:
+        ValueError: Si el mensaje no cumple longitud o alfabeto permitido.
+    """
     M = M.strip()
     if not (1 <= len(M) <= LARGO_BLOQUE):
         raise ValueError(f"M debe tener entre 1 y {LARGO_BLOQUE} caracteres.")
@@ -44,7 +64,20 @@ def cifrar(M: str, verbose: bool = True) -> tuple:
 
 
 def descifrar(C: str, K: int, M_len: int, verbose: bool = True) -> str:
-    """Descifra C usando la clave maestra K generada en el cifrado."""
+    """Descifra un bloque cifrado usando la clave maestra de cifrado.
+
+    Args:
+        C: Bloque cifrado.
+        K: Clave maestra de 64 bits usada en `cifrar`.
+        M_len: Longitud real del mensaje original.
+        verbose: Si es `True`, imprime estados en rondas seleccionadas.
+
+    Returns:
+        Mensaje recuperado sin padding.
+
+    Raises:
+        ValueError: Si `M_len` está fuera del rango de bloque.
+    """
     if not (1 <= M_len <= LARGO_BLOQUE):
         raise ValueError(f"M_len debe estar entre 1 y {LARGO_BLOQUE}.")
 

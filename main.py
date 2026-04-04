@@ -1,4 +1,10 @@
-"""Punto de entrada del cifrador por bloques modularizado."""
+"""Interfaz de línea de comandos del cifrador por bloques.
+
+Este archivo implementa el flujo de ejecución interactivo:
+- lectura y validación de entrada por medio del núcleo (`cipher_core.py`),
+- ejecución de cifrado y descifrado,
+- reporte de verificación de consistencia extremo a extremo.
+"""
 
 from constants import LARGO_BLOQUE
 from cipher_core import cifrar, descifrar
