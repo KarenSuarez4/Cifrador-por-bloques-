@@ -13,8 +13,8 @@ if __name__ == "__main__":
     while True:
         mensaje = input("Mensaje a cifrar: ").strip()
         try:
-            cifrado, clave, largo_original = cifrar(mensaje, verbose=False)
-            recuperado = descifrar(cifrado, clave, largo_original, verbose=False)
+            cifrado, clave, largo_original = cifrar(mensaje, verbose=True)
+            recuperado = descifrar(cifrado, clave, largo_original, verbose=True)
             break
         except ValueError as exc:
             print(f"Entrada invalida: {exc}")

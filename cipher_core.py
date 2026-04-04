@@ -1,6 +1,6 @@
 """API principal de cifrado y descifrado."""
 
-from constants import ALFABETO, LARGO_BLOQUE, R
+from constants import ALFABETO, LARGO_BLOQUE, R, RONDAS_VERBOSE
 from key_schedule import expandir_subclave, generar_clave
 from padding import aplicar_padding, quitar_padding
 from substitution import sustitucion, sustitucion_inversa
@@ -26,10 +26,17 @@ def cifrar(M: str, verbose: bool = True) -> tuple:
 
     estado = bloque
     for r in range(1, R + 1):
+        estado_in = estado
         K_r = expandir_subclave(K, r)
-        estado_s = sustitucion(estado, K_r)
+        estado_s = sustitucion(estado_in, K_r)
         estado_t = transposicion(estado_s, K_r)
         estado = estado_t
+
+        if verbose and r in RONDAS_VERBOSE:
+            print(f"[CIF][R{r:02d}] K_r=0x{K_r:016X}")
+            print(f"  entrada : {estado_in}")
+            print(f"  sub     : {estado_s}")
+            print(f"  transp  : {estado_t}")
 
     C = estado
 
@@ -43,8 +50,16 @@ def descifrar(C: str, K: int, M_len: int, verbose: bool = True) -> str:
 
     estado = C
     for r in range(R, 0, -1):
+        estado_in = estado
         K_r = expandir_subclave(K, r)
-        estado = transposicion_inversa(estado, K_r)
-        estado = sustitucion_inversa(estado, K_r)
+        estado_tinv = transposicion_inversa(estado_in, K_r)
+        estado_sinv = sustitucion_inversa(estado_tinv, K_r)
+        estado = estado_sinv
+
+        if verbose and r in RONDAS_VERBOSE:
+            print(f"[DEC][R{r:02d}] K_r=0x{K_r:016X}")
+            print(f"  entrada : {estado_in}")
+            print(f"  t_inv   : {estado_tinv}")
+            print(f"  s_inv   : {estado_sinv}")
 
     return quitar_padding(estado, M_len)
