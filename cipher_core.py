@@ -8,10 +8,10 @@ from transposition import transposicion, transposicion_inversa
 
 
 def cifrar(M: str, verbose: bool = True) -> tuple:
-    """Cifra M y retorna (ciphertext, clave_maestra_generada)."""
+    """Cifra M y retorna (ciphertext, clave_maestra_generada, largo_original)."""
     M = M.strip()
-    if not (1 <= len(M) <= LARGO_BLOQUE - 1):
-        raise ValueError(f"M debe tener entre 1 y {LARGO_BLOQUE - 1} caracteres.")
+    if not (1 <= len(M) <= LARGO_BLOQUE):
+        raise ValueError(f"M debe tener entre 1 y {LARGO_BLOQUE} caracteres.")
     for c in M:
         if c not in ALFABETO:
             raise ValueError(
@@ -19,6 +19,7 @@ def cifrar(M: str, verbose: bool = True) -> tuple:
                 "Solo alfanumericos ASCII (A-Z, a-z, 0-9)."
             )
 
+    M_len = len(M)
     bloque = aplicar_padding(M)
 
     K = generar_clave(M)
@@ -32,11 +33,13 @@ def cifrar(M: str, verbose: bool = True) -> tuple:
 
     C = estado
 
-    return C, K
+    return C, K, M_len
 
 
-def descifrar(C: str, K: int, verbose: bool = True) -> str:
+def descifrar(C: str, K: int, M_len: int, verbose: bool = True) -> str:
     """Descifra C usando la clave maestra K generada en el cifrado."""
+    if not (1 <= M_len <= LARGO_BLOQUE):
+        raise ValueError(f"M_len debe estar entre 1 y {LARGO_BLOQUE}.")
 
     estado = C
     for r in range(R, 0, -1):
@@ -44,4 +47,4 @@ def descifrar(C: str, K: int, verbose: bool = True) -> str:
         estado = transposicion_inversa(estado, K_r)
         estado = sustitucion_inversa(estado, K_r)
 
-    return quitar_padding(estado)
+    return quitar_padding(estado, M_len)
