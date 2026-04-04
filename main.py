@@ -1,26 +1,33 @@
-"""Punto de entrada del cifrador por bloques modularizado."""
+"""Interfaz de línea de comandos del cifrador por bloques.
 
-from analysis_tools import analisis_avalancha, analisis_rondas, imprimir_resumen_criptografico
+Este archivo implementa el flujo de ejecución interactivo:
+- lectura y validación de entrada por medio del núcleo (`cipher_core.py`),
+- ejecución de cifrado y descifrado,
+- reporte de verificación de consistencia extremo a extremo.
+"""
+
+from constants import LARGO_BLOQUE
 from cipher_core import cifrar, descifrar
 
 
 if __name__ == "__main__":
-    print()
-    M1 = "PKG2024ABC99XZ"
-    C1, _ = cifrar(M1, verbose=True)
+    max_len = LARGO_BLOQUE
 
-    M1_rec = descifrar(C1, M1, verbose=True)
-    ok1 = M1_rec == M1
-    print(f"\n   Verificacion cifrado/descifrado: {'CORRECTO' if ok1 else 'ERROR'}\n")
+    print("CIFRADOR POR BLOQUES")
+    print(f"Ingrese un mensaje de 1 a {max_len} caracteres, sin espacios ni 'ñ'.")
 
-    print("\n" + "-" * 67)
-    print("   EJEMPLO 2: Mensaje corto con padding")
-    print("-" * 67)
-    M2 = "TRACK01"
-    C2, _ = cifrar(M2, verbose=True)
-    M2_rec = descifrar(C2, M2, verbose=True)
-    print(f"\n   Verificacion cifrado/descifrado: {'CORRECTO' if M2_rec == M2 else 'ERROR'}\n")
+    while True:
+        mensaje = input("Mensaje a cifrar: ").strip()
+        try:
+            cifrado, clave, largo_original = cifrar(mensaje, verbose=True)
+            recuperado = descifrar(cifrado, clave, largo_original, verbose=True)
+            break
+        except ValueError as exc:
+            print(f"Entrada invalida: {exc}")
+            print("Intente nuevamente.\n")
 
-    analisis_avalancha(M1)
-    analisis_rondas(M1)
-    imprimir_resumen_criptografico()
+    print(f"mensaje: {mensaje}")
+    print(f"clave: 0x{clave:016X}")
+    print(f"cifrado: {cifrado}")
+    print(f"descifrado: {recuperado}")
+    print(f"verificacion: {'CORRECTO' if recuperado == mensaje else 'ERROR'}")

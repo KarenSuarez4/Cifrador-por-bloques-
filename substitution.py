@@ -1,21 +1,49 @@
-"""Capa de sustitucion directa e inversa."""
+"""Capa no lineal de sustitución del cifrador por bloques.
+
+Arquitectura de la capa:
+- aplica una S-Box afín sobre índices del alfabeto,
+- incorpora mezcla de subclave por posición,
+- define transformación directa e inversa para permitir descifrado exacto.
+"""
 
 from bit_utils import clave_posicion
 from constants import ALFABETO, A_INV, A_S, B_S, TAM_ALFA
 
 
 def s_box(idx: int) -> int:
-    """S-Box base: S(i) = (3*i + 17) mod 62."""
+    """Evalúa la S-Box base sobre un índice del alfabeto.
+
+    Args:
+        idx: Índice de entrada en el dominio [0, TAM_ALFA - 1].
+
+    Returns:
+        Índice transformado por la S-Box.
+    """
     return (A_S * idx + B_S) % TAM_ALFA
 
 
 def s_box_inv(idx: int) -> int:
-    """Inversa: S^-1(j) = (21*(j - 17)) mod 62."""
+    """Evalúa la inversa de la S-Box base.
+
+    Args:
+        idx: Índice transformado por la S-Box.
+
+    Returns:
+        Índice original previo a la S-Box.
+    """
     return (A_INV * (idx - B_S)) % TAM_ALFA
 
 
 def sustitucion(bloque: str, K_r: int) -> str:
-    """Aplica sustitucion con mezcla de clave por posicion."""
+    """Aplica sustitución símbolo a símbolo con clave de ronda.
+
+    Args:
+        bloque: Estado de entrada de la ronda.
+        K_r: Subclave de ronda.
+
+    Returns:
+        Estado transformado tras sustitución.
+    """
     resultado = ""
     for i in range(len(bloque)):
         idx = ALFABETO.index(bloque[i])
@@ -27,7 +55,15 @@ def sustitucion(bloque: str, K_r: int) -> str:
 
 
 def sustitucion_inversa(bloque: str, K_r: int) -> str:
-    """Deshace sustitucion: resta modular y aplica S-Box inversa."""
+    """Revierte la capa de sustitución para descifrado.
+
+    Args:
+        bloque: Estado de entrada en fase de descifrado.
+        K_r: Subclave de la ronda correspondiente.
+
+    Returns:
+        Estado previo a la sustitución directa.
+    """
     resultado = ""
     for i in range(len(bloque)):
         idx_f = ALFABETO.index(bloque[i])

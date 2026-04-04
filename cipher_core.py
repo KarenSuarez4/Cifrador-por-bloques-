@@ -1,4 +1,10 @@
-"""API principal de cifrado y descifrado."""
+"""Núcleo de orquestación del cifrado por bloques.
+
+Responsabilidad arquitectónica:
+- validar entrada de usuario,
+- coordinar padding, schedule de claves y capas de ronda,
+- exponer API pública de cifrado/descifrado para `main.py`.
+"""
 
 from constants import ALFABETO, LARGO_BLOQUE, R, RONDAS_VERBOSE
 from key_schedule import expandir_subclave, generar_clave
@@ -8,7 +14,21 @@ from transposition import transposicion, transposicion_inversa
 
 
 def cifrar(M: str, verbose: bool = True) -> tuple:
-    """Cifra M y retorna (ciphertext, largo_original)."""
+    """Cifra un mensaje en un bloque de salida de longitud fija.
+
+    Args:
+        M: Mensaje a cifrar.
+        verbose: Si es `True`, imprime estados en rondas seleccionadas.
+
+    Returns:
+        Tupla `(C, K, M_len)` donde:
+        - `C` es el ciphertext final,
+        - `K` es la clave maestra generada,
+        - `M_len` es la longitud original del mensaje.
+
+    Raises:
+        ValueError: Si el mensaje no cumple longitud o alfabeto permitido.
+    """
     M = M.strip()
     if not (1 <= len(M) <= LARGO_BLOQUE):
         raise ValueError(f"M debe tener entre 1 y {LARGO_BLOQUE} caracteres.")
@@ -20,67 +40,59 @@ def cifrar(M: str, verbose: bool = True) -> tuple:
             )
 
     M_len = len(M)
-
-    if verbose:
-        sep = "=" * 67
-        print(sep)
-        print("   CIFRADOR DE BLOQUES - SISTEMA LOGISTICO DE SEGUIMIENTO")
-        print(sep)
-        print(f"   Mensaje original M  : '{M}'  (largo: {M_len})")
-
     bloque = aplicar_padding(M)
-    if verbose:
-        print(f"   Bloque con padding  : '{bloque}'  (largo: {len(bloque)})")
 
     K = generar_clave(M)
-    if verbose:
-        print(f"   Clave maestra K     : 0x{K:016X}")
-        print(f"   Rondas R            : {R}")
-        print("-" * 67)
 
     estado = bloque
     for r in range(1, R + 1):
+        estado_in = estado
         K_r = expandir_subclave(K, r)
-        estado_s = sustitucion(estado, K_r)
+        estado_s = sustitucion(estado_in, K_r)
         estado_t = transposicion(estado_s, K_r)
         estado = estado_t
 
         if verbose and r in RONDAS_VERBOSE:
-            print(f"   [Ronda {r:02d}] K_r = 0x{K_r:016X}")
-            print(f"              Post-Sustitucion  : '{estado_s}'")
-            print(f"              Post-Transposicion: '{estado_t}'")
-            print("-" * 67)
+            print(f"[CIF][R{r:02d}] K_r=0x{K_r:016X}")
+            print(f"  entrada : {estado_in}")
+            print(f"  sub     : {estado_s}")
+            print(f"  transp  : {estado_t}")
 
     C = estado
-    if verbose:
-        print(f"\n   >>> CIPHERTEXT C = '{C}'")
-        print("=" * 67)
 
-    return C, M_len
+    return C, K, M_len
 
 
-def descifrar(C: str, M_original: str, verbose: bool = True) -> str:
-    """Descifra C usando la clave regenerada desde M_original."""
-    K = generar_clave(M_original)
-    M_len = len(M_original.strip())
+def descifrar(C: str, K: int, M_len: int, verbose: bool = True) -> str:
+    """Descifra un bloque cifrado usando la clave maestra de cifrado.
 
-    if verbose:
-        print("\n" + "=" * 67)
-        print("   DESCIFRADO")
-        print(f"   Ciphertext de entrada : '{C}'")
-        print("-" * 67)
+    Args:
+        C: Bloque cifrado.
+        K: Clave maestra de 64 bits usada en `cifrar`.
+        M_len: Longitud real del mensaje original.
+        verbose: Si es `True`, imprime estados en rondas seleccionadas.
+
+    Returns:
+        Mensaje recuperado sin padding.
+
+    Raises:
+        ValueError: Si `M_len` está fuera del rango de bloque.
+    """
+    if not (1 <= M_len <= LARGO_BLOQUE):
+        raise ValueError(f"M_len debe estar entre 1 y {LARGO_BLOQUE}.")
 
     estado = C
     for r in range(R, 0, -1):
+        estado_in = estado
         K_r = expandir_subclave(K, r)
-        estado = transposicion_inversa(estado, K_r)
-        estado = sustitucion_inversa(estado, K_r)
+        estado_tinv = transposicion_inversa(estado_in, K_r)
+        estado_sinv = sustitucion_inversa(estado_tinv, K_r)
+        estado = estado_sinv
 
-    M_rec = quitar_padding(estado, M_len)
+        if verbose and r in RONDAS_VERBOSE:
+            print(f"[DEC][R{r:02d}] K_r=0x{K_r:016X}")
+            print(f"  entrada : {estado_in}")
+            print(f"  t_inv   : {estado_tinv}")
+            print(f"  s_inv   : {estado_sinv}")
 
-    if verbose:
-        print(f"   Bloque descifrado     : '{estado}'")
-        print(f"   Mensaje recuperado    : '{M_rec}'")
-        print("=" * 67)
-
-    return M_rec
+    return quitar_padding(estado, M_len)
